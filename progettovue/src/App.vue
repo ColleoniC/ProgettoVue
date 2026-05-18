@@ -1,30 +1,41 @@
 <template>
-  <nav>
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
-  </nav>
-  <router-view/>
+  <RouterView />
 </template>
 
+<script setup>
+import { RouterView } from 'vue-router';
+</script>
+
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-nav {
-  padding: 30px;
+:root {
+  --bg:           #050a0f;
+  --surface:      #0d1821;
+  --surface2:     #162233;
+  --border:       #1e3a50;
+  --accent:       #00c9ff;
+  --accent2:      #ff6b35;
+  --text:         #e8f4fd;
+  --text-muted:   #5a8fa8;
+  --font-display: 'Syne', sans-serif;
+  --font-mono:    'Space Mono', monospace;
 }
 
-nav a {
-  font-weight: bold;
-  color: #2c3e50;
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  overflow: hidden;
 }
 
-nav a.router-link-exact-active {
-  color: #42b983;
-}
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 </style>

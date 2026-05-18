@@ -1,5 +1,5 @@
 const BASE_URL = 'https://api.countrystatecity.in/v1';
-const API_KEY = 'YOUR_API_KEY';
+const API_KEY = 'YOUR_API_KEY'; // ← sostituisci con la tua chiave da countrystatecity.in
 
 const headers = { 'X-CSCAPI-KEY': API_KEY };
 

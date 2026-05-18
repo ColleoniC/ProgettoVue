@@ -1,174 +1,142 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Wikipedia / Wikimedia API
-//
-// Tre API disponibili:
-//   1. Wikimedia REST API v1  → https://en.wikipedia.org/api/rest_v1/
-//   2. MediaWiki REST API     → https://en.wikipedia.org/w/rest.php/v1/
-//   3. MediaWiki Action API   → https://en.wikipedia.org/w/api.php
-//
-// Nessuna API key richiesta per le richieste in sola lettura.
-// Imposta sempre un User-Agent identificativo come da linee guida Wikimedia.
-// Rate limit: max 200 richieste/secondo.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const LANG = 'en'; // lingua Wikipedia (es. 'it', 'fr', 'de', ...)
-
+const LANG = 'en';
 const REST_V1_BASE   = `https://${LANG}.wikipedia.org/api/rest_v1`;
-const MEDIAWIKI_BASE = `https://${LANG}.wikipedia.org/w/rest.php/v1`;
 const ACTION_BASE    = `https://${LANG}.wikipedia.org/w/api.php`;
 
-const USER_AGENT = 'MyApp/1.0 (myemail@example.com)';
+const USER_AGENT = 'GlobeExplorer/1.0 (educational project)';
 
 const defaultHeaders = {
   'Api-User-Agent': USER_AGENT,
 };
 
 // ─────────────────────────────────────────────
-// 1. WIKIMEDIA REST API v1
-//    Base: https://en.wikipedia.org/api/rest_v1
+// WIKIMEDIA REST API v1
+// Base: https://en.wikipedia.org/api/rest_v1
 // ─────────────────────────────────────────────
 
-/** Ottieni il sommario di un articolo (titolo, estratto, immagine, coordinate) */
+/** Sommario di un articolo (titolo, estratto, immagine, coordinate) */
 const getPageSummary = async (title) => {
-  const response = await fetch(`${REST_V1_BASE}/page/summary/${encodeURIComponent(title)}`, {
-    headers: defaultHeaders,
-  });
+  const response = await fetch(
+    `${REST_V1_BASE}/page/summary/${encodeURIComponent(title)}`,
+    { headers: defaultHeaders }
+  );
   if (response.ok) return await response.json();
   console.error('Error fetching page summary:', response.status);
 };
 
-/** Ottieni il contenuto HTML completo di un articolo */
+/** Contenuto HTML completo di un articolo */
 const getPageHtml = async (title) => {
-  const response = await fetch(`${REST_V1_BASE}/page/html/${encodeURIComponent(title)}`, {
-    headers: defaultHeaders,
-  });
+  const response = await fetch(
+    `${REST_V1_BASE}/page/html/${encodeURIComponent(title)}`,
+    { headers: defaultHeaders }
+  );
   if (response.ok) return await response.text();
   console.error('Error fetching page HTML:', response.status);
 };
 
-/** Ottieni il contenuto in formato MobileHTML (ottimizzato per mobile) */
+/** Contenuto in formato MobileHTML (ottimizzato per mobile) */
 const getPageMobileHtml = async (title) => {
-  const response = await fetch(`${REST_V1_BASE}/page/mobile-html/${encodeURIComponent(title)}`, {
-    headers: defaultHeaders,
-  });
+  const response = await fetch(
+    `${REST_V1_BASE}/page/mobile-html/${encodeURIComponent(title)}`,
+    { headers: defaultHeaders }
+  );
   if (response.ok) return await response.text();
   console.error('Error fetching mobile HTML:', response.status);
 };
 
-/** Ottieni i media (immagini, video, audio) usati in una pagina */
+/** Media (immagini, video, audio) usati in una pagina */
 const getPageMedia = async (title) => {
-  const response = await fetch(`${REST_V1_BASE}/page/media-list/${encodeURIComponent(title)}`, {
-    headers: defaultHeaders,
-  });
+  const response = await fetch(
+    `${REST_V1_BASE}/page/media-list/${encodeURIComponent(title)}`,
+    { headers: defaultHeaders }
+  );
   if (response.ok) return await response.json();
   console.error('Error fetching page media:', response.status);
 };
 
-/** Ottieni un articolo casuale */
+/** Articolo casuale */
 const getRandomPage = async () => {
-  const response = await fetch(`${REST_V1_BASE}/page/random/summary`, {
-    headers: defaultHeaders,
-  });
+  const response = await fetch(
+    `${REST_V1_BASE}/page/random/summary`,
+    { headers: defaultHeaders }
+  );
   if (response.ok) return await response.json();
   console.error('Error fetching random page:', response.status);
 };
 
-/** Ottieni il PDF di un articolo */
+/** PDF di un articolo (restituisce Blob) */
 const getPagePdf = async (title) => {
-  const response = await fetch(`${REST_V1_BASE}/page/pdf/${encodeURIComponent(title)}`, {
-    headers: defaultHeaders,
-  });
-  if (response.ok) return await response.blob(); // PDF binario
+  const response = await fetch(
+    `${REST_V1_BASE}/page/pdf/${encodeURIComponent(title)}`,
+    { headers: defaultHeaders }
+  );
+  if (response.ok) return await response.blob();
   console.error('Error fetching page PDF:', response.status);
 };
 
-/** Ottieni i metadati di una revisione specifica */
+/** Metadati dell'ultima revisione di un articolo */
 const getPageRevision = async (title) => {
-  const response = await fetch(`${REST_V1_BASE}/page/title/${encodeURIComponent(title)}`, {
-    headers: defaultHeaders,
-  });
+  const response = await fetch(
+    `${REST_V1_BASE}/page/title/${encodeURIComponent(title)}`,
+    { headers: defaultHeaders }
+  );
   if (response.ok) return await response.json();
   console.error('Error fetching page revision:', response.status);
 };
 
 // ─────────────────────────────────────────────
-// 2. MEDIAWIKI REST API
-//    Base: https://en.wikipedia.org/w/rest.php/v1
+// ACTION API (ricerca testuale, più flessibile)
+// Base: https://en.wikipedia.org/w/api.php
 // ─────────────────────────────────────────────
 
-/** Cerca pagine per titolo (prefix search) */
-const searchByTitle = async (query, limit = 10) => {
-  const url = new URL(`${MEDIAWIKI_BASE}/search/title`);
-  url.searchParams.set('q', query);
-  url.searchParams.set('limit', limit);
-  const response = await fetch(url, { headers: defaultHeaders });
-  if (response.ok) return await response.json();
-  console.error('Error searching by title:', response.status);
+/**
+ * Cerca articoli per testo.
+ * @param {string} query - Testo da cercare
+ * @param {string} lang  - Lingua (default 'en')
+ * @param {number} limit - Numero massimo risultati (default 5)
+ */
+const searchPages = async (query, lang = LANG, limit = 5) => {
+  const url =
+    `https://${lang}.wikipedia.org/w/api.php` +
+    `?action=query&list=search&srsearch=${encodeURIComponent(query)}` +
+    `&format=json&origin=*&srlimit=${limit}`;
+  const response = await fetch(url);
+  if (response.ok) {
+    const data = await response.json();
+    return data?.query?.search || [];
+  }
+  console.error('Error searching pages:', response.status);
+  return [];
 };
 
-/** Cerca pagine per contenuto (full-text search) */
-const searchByContent = async (query, limit = 10) => {
-  const url = new URL(`${MEDIAWIKI_BASE}/search/page`);
-  url.searchParams.set('q', query);
-  url.searchParams.set('limit', limit);
-  const response = await fetch(url, { headers: defaultHeaders });
-  if (response.ok) return await response.json();
-  console.error('Error searching by content:', response.status);
+/**
+ * Recupera estratto + thumbnail + URL di una pagina tramite pageId.
+ * Usato internamente da geo.js, esposto per riuso esterno.
+ * @param {number} pageId
+ * @param {string} lang
+ */
+const getPageDetails = async (pageId, lang = LANG) => {
+  const url =
+    `https://${lang}.wikipedia.org/w/api.php` +
+    `?action=query&pageids=${pageId}` +
+    `&prop=extracts|pageimages|info` +
+    `&exintro=true&explaintext=true` +
+    `&piprop=thumbnail&pithumbsize=400` +
+    `&inprop=url&format=json&origin=*`;
+  const response = await fetch(url);
+  if (response.ok) {
+    const data = await response.json();
+    return data?.query?.pages?.[pageId] || null;
+  }
+  console.error('Error fetching page details:', response.status);
+  return null;
 };
-
-/** Ottieni i dati di una pagina (sorgente wikitext, ultima revisione) */
-const getPage = async (title) => {
-  const response = await fetch(`${MEDIAWIKI_BASE}/page/${encodeURIComponent(title)}`, {
-    headers: defaultHeaders,
-  });
-  if (response.ok) return await response.json();
-  console.error('Error fetching page:', response.status);
-};
-
-/** Ottieni il wikitext sorgente di una pagina */
-const getPageWikitext = async (title) => {
-  const response = await fetch(`${MEDIAWIKI_BASE}/page/${encodeURIComponent(title)}/bare`, {
-    headers: defaultHeaders,
-  });
-  if (response.ok) return await response.json();
-  console.error('Error fetching page wikitext:', response.status);
-};
-
-/** Ottieni la cronologia delle revisioni di una pagina */
-const getPageHistory = async (title) => {
-  const response = await fetch(`${MEDIAWIKI_BASE}/page/${encodeURIComponent(title)}/history`, {
-    headers: defaultHeaders,
-  });
-  if (response.ok) return await response.json();
-  console.error('Error fetching page history:', response.status);
-};
-
-/** Ottieni il conteggio delle revisioni di una pagina */
-const getPageHistoryCount = async (title) => {
-  const response = await fetch(`${MEDIAWIKI_BASE}/page/${encodeURIComponent(title)}/history/counts/edits`, {
-    headers: defaultHeaders,
-  });
-  if (response.ok) return await response.json();
-  console.error('Error fetching page history count:', response.status);
-};
-
-/** Ottieni i link a file/media usati in una pagina */
-const getPageMediaLinks = async (title) => {
-  const response = await fetch(`${MEDIAWIKI_BASE}/page/${encodeURIComponent(title)}/links/media`, {
-    headers: defaultHeaders,
-  });
-  if (response.ok) return await response.json();
-  console.error('Error fetching page media links:', response.status);
-};
-
-
 
 // ─────────────────────────────────────────────
 // EXPORTS
 // ─────────────────────────────────────────────
 
 export {
-  // Wikimedia REST API v1
+  // REST API v1
   getPageSummary,
   getPageHtml,
   getPageMobileHtml,
@@ -176,4 +144,7 @@ export {
   getRandomPage,
   getPagePdf,
   getPageRevision,
+  // Action API
+  searchPages,
+  getPageDetails,
 };
