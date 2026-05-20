@@ -93,7 +93,7 @@
             <div class="extract-block" v-if="activeLevel.wiki?.extract">
               <p class="extract-intro">{{ introText }}</p>
               <button
-                v-if="activeLevel.wiki.extract.length > 320"
+                v-if="activeLevel.wiki.extract.length > 800"
                 class="expand-btn"
                 @click="expanded = !expanded"
               >
@@ -209,12 +209,12 @@ const breadcrumbs = computed(() => {
   return [g.country, g.region, g.city].filter(Boolean)
 })
 
-// ── Extract: intro (first 320 chars) ──
+// ── Extract: intro (first 800 chars) ──
 const introText = computed(() => {
   const text = activeLevel.value?.wiki?.extract
   if (!text) return ''
-  if (!expanded.value || text.length <= 320) return text.slice(0, 320) + (text.length > 320 ? '…' : '')
-  return text.slice(0, 320) + '…'
+  if (!expanded.value || text.length <= 800) return text.slice(0, 800) + (text.length > 800 ? '…' : '')
+  return text.slice(0, 800) + '…'
 })
 
 // ── Parse full extract into sections ──
@@ -307,7 +307,7 @@ function formatCoord(val) {
 .panel {
   position: fixed;
   top: 0; right: 0;
-  width: 400px; height: 100%;
+  width: 520px; height: 100%;
   background: var(--surface);
   border-left: 1px solid var(--border);
   display: flex; flex-direction: column;

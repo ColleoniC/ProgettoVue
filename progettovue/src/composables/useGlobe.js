@@ -3,6 +3,7 @@ import * as THREE from 'three'
 export function useGlobe(canvas, onClickCoords) {
   let renderer, scene, camera, globe, stars, animId
   let isDragging = false
+  let isMouseDown = false
   let prevMouse = { x: 0, y: 0 }
   let rotVelocity = { x: 0, y: 0 }
   const GLOBE_RADIUS = 2
@@ -95,8 +96,8 @@ export function useGlobe(canvas, onClickCoords) {
 
   function animate() {
     animId = requestAnimationFrame(animate)
-    if (!isDragging) {
-      globe.rotation.y += 0.0015 + rotVelocity.y
+    if (!isMouseDown) {
+      globe.rotation.y += rotVelocity.y
       globe.rotation.x += rotVelocity.x
       rotVelocity.x *= 0.95
       rotVelocity.y *= 0.95
@@ -106,12 +107,14 @@ export function useGlobe(canvas, onClickCoords) {
   }
 
   function onMouseDown(e) {
+    isMouseDown = true
     isDragging = false
     prevMouse = { x: e.clientX, y: e.clientY }
     canvas.style.cursor = 'grabbing'
   }
 
   function onMouseMove(e) {
+    if (!isMouseDown) return
     const dx = e.clientX - prevMouse.x
     const dy = e.clientY - prevMouse.y
     if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
@@ -125,7 +128,8 @@ export function useGlobe(canvas, onClickCoords) {
   }
 
   function onMouseUp() {
-    canvas.style.cursor = 'crosshair'
+    isMouseDown = false
+    canvas.style.cursor = 'default'
     setTimeout(() => { isDragging = false }, 50)
   }
 
@@ -145,9 +149,9 @@ export function useGlobe(canvas, onClickCoords) {
     // Punto nello spazio locale del globo (tenendo conto della rotazione)
     const localPoint = globe.worldToLocal(hits[0].point.clone())
     const lat = 90 - (Math.acos(localPoint.y / GLOBE_RADIUS) * 180) / Math.PI
-    const lon = ((Math.atan2(localPoint.x, localPoint.z) * 180) / Math.PI + 360) % 360 - 180
+    const lon = (Math.atan2(localPoint.z, localPoint.x) * 180) / Math.PI
 
-    onClickCoords(lat, lon, hits[0].point)
+    onClickCoords(lat, lon, { lat, lon, globe })
   }
 
   function onResize() {
@@ -158,12 +162,22 @@ export function useGlobe(canvas, onClickCoords) {
     renderer.setSize(w, h)
   }
 
-  function addMarker(worldPoint) {
-    // Rimuovi vecchio marker
-    const old = scene.getObjectByName('marker')
-    if (old) scene.remove(old)
+  function addMarker({ lat, lon, globe }) {
+    // Rimuovi tutti i vecchi marker
+    const toRemove = scene.children.filter(o => o.name === 'marker')
+    toRemove.forEach(o => scene.remove(o))
 
-    const markerGeo = new THREE.SphereGeometry(0.04, 16, 16)
+    // Ricalcola posizione world dalla lat/lon
+    const phi = (90 - lat) * (Math.PI / 180)
+    const theta = lon * (Math.PI / 180)
+    const localPos = new THREE.Vector3(
+      GLOBE_RADIUS * Math.sin(phi) * Math.cos(theta),
+      GLOBE_RADIUS * Math.cos(phi),
+      GLOBE_RADIUS * Math.sin(phi) * Math.sin(theta)
+    )
+    const worldPoint = localPos.clone().applyMatrix4(globe.matrixWorld)
+
+    const markerGeo = new THREE.SphereGeometry(0.02, 16, 16)
     const markerMat = new THREE.MeshBasicMaterial({ color: 0xff6b35 })
     const marker = new THREE.Mesh(markerGeo, markerMat)
     marker.name = 'marker'
@@ -171,7 +185,7 @@ export function useGlobe(canvas, onClickCoords) {
     scene.add(marker)
 
     // Pulse ring
-    const ringGeo = new THREE.RingGeometry(0.05, 0.08, 32)
+    const ringGeo = new THREE.RingGeometry(0.025, 0.04, 32)
     const ringMat = new THREE.MeshBasicMaterial({ color: 0xff6b35, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
     const ring = new THREE.Mesh(ringGeo, ringMat)
     ring.name = 'marker'
