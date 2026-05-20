@@ -13,7 +13,6 @@ export async function reverseGeocode(lat, lon) {
   if (!res.ok) throw new Error(`Geocoding fallito: ${res.status}`)
   const data = await res.json()
 
-  // Nominatim restituisce un campo "error" se si clicca in oceano
   if (data.error) {
     return { country: null, countryCode: null, region: null, city: null, displayName: null }
   }
@@ -29,13 +28,14 @@ export async function reverseGeocode(lat, lon) {
 }
 
 // ─────────────────────────────────────────────
-// Wikipedia: cerca titolo + estratto + immagine
+// Wikipedia: cerca titolo + estratto LUNGO + immagine
 // ─────────────────────────────────────────────
 
 export async function fetchWikipedia(query, lang = 'it') {
   if (!query) return null
 
   try {
+    // 1. Search for the best matching page
     const searchUrl =
       `https://${lang}.wikipedia.org/w/api.php` +
       `?action=query&list=search&srsearch=${encodeURIComponent(query)}` +
@@ -53,13 +53,16 @@ export async function fetchWikipedia(query, lang = 'it') {
     const pageId = pages[0].pageid
     const title  = pages[0].title
 
+    // 2. Fetch full extract (no exintro = full article text), image, and URL
     const detailUrl =
       `https://${lang}.wikipedia.org/w/api.php` +
       `?action=query&pageids=${pageId}` +
-      `&prop=extracts|pageimages|info` +
-      `&exintro=true&explaintext=true` +
-      `&piprop=thumbnail&pithumbsize=400` +
-      `&inprop=url&format=json&origin=*`
+      `&prop=extracts|pageimages|info|categories` +
+      `&explaintext=true` +         // full plain-text (not just intro)
+      `&exsectionformat=plain` +
+      `&piprop=thumbnail&pithumbsize=600` +
+      `&inprop=url&format=json&origin=*` +
+      `&cllimit=5&clshow=!hidden`
 
     const detailRes  = await fetch(detailUrl)
     const detailData = await detailRes.json()
@@ -70,7 +73,8 @@ export async function fetchWikipedia(query, lang = 'it') {
       extract:   page?.extract || null,
       thumbnail: page?.thumbnail?.source || null,
       url:       page?.fullurl || `https://${lang}.wikipedia.org/?curid=${pageId}`,
-      lang
+      lang,
+      pageId
     }
   } catch (e) {
     console.warn(`Wikipedia fetch fallito per "${query}":`, e)
